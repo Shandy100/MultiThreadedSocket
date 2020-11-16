@@ -1,45 +1,57 @@
-import socket
-import argparse
-import threading 
+import socket 
+from threading import Thread 
+from SocketServer import ThreadingMixIn 
 
-parser = argparse.ArgumentParser(description = "This is the server for the multithreaded socket demo!")
-parser.add_argument('--host', metavar = 'host', type = str, nargs = '?', default = socket.gethostname())
-parser.add_argument('--port', metavar = 'port', type = int, nargs = '?', default = 9999)
-args = parser.parse_args()
+# Multithreaded Python server : TCP Server Socket Thread Pool
+class ClientThread(Thread): 
+ 
+    def __init__(self,ip,port): 
+        Thread.__init__(self) 
+        self.ip = ip 
+        self.port = port 
+        print "[+] New server socket thread started for " + ip + ":" + str(port) 
+ 
+    def run(self): 
+        while True : 
+            data = conn.recv(2048) 
+            print "Server received data:", data
+            MESSAGE = raw_input("Multithreaded Python server : Enter Response from Server/Enter exit:")
+            if MESSAGE == 'exit':
+                break
+            conn.send(MESSAGE)  # echo 
 
-print(f"Running the server on: {args.host} and port: {args.port}")
+# Multithreaded Python server : TCP Server Socket Program Stub
+TCP_IP = '0.0.0.0' 
+TCP_PORT = 2004 
+BUFFER_SIZE = 20  # Usually 1024, but we need quick response 
 
-sck = socket.socket()
-sck.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+tcpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+tcpServer.bind((TCP_IP, TCP_PORT)) 
+threads = [] 
+ 
+while True: 
+     c, addr = s.accept() 		# Establish connection with client.
+     print('Got connection from', addr)
 
-try: 
-	sck.bind((args.host, args.port))
-	sck.listen(5)
-except Exception as e:
-	raise SystemExit(f"We could not bind the server on host: {args.host} to port: {args.port}, because: {e}")
+     while True:
+          try:
+               equation=c.recv(1024).decode()
+               if equation == "Q" or equation == "q" or equation == "Quit" or equation == "quit" or equation == "quit()":
+                    c.send("Quit".encode())
+                    break
+               else:
+                    print("You gave me the equation:", equation)
+                    result = eval(equation)
+                    c.send(str(result).encode())
+          except (ZeroDivisionError):
+               c.send("ZeroDiv".encode())
+          except (ArithmeticError):
+               c.send("MathError".encode())
+          except (SyntaxError):
+               c.send("SyntaxError".encode())
+          except (NameError):
+               c.send("NameError".encode())
 
-
-def on_new_client(client, connection):
-	ip = connection[0]
-	port = connection[1]
-	print(f"THe new connection was made from IP: {ip}, and port: {port}!")
-	while True:
-		msg = client.recv(1024)
-		if msg.decode() == 'exit':
-			break
-		print(f"The client said: {msg.decode()}")
-		reply = f"You told me: {msg.decode()}"
-		client.sendall(reply.encode('utf-8'))
-	print(f"The client from ip: {ip}, and port: {port}, has gracefully diconnected!")
-	client.close()
-
-while True:
-	try: 
-		client, ip = sck.accept()
-		threading._start_new_thread(on_new_client,(client, ip))
-	except KeyboardInterrupt:
-		print(f"Gracefully shutting down the server!")
-	except Exception as e:
-		print(f"Well I did not anticipate this: {e}")
-
-sck.close()
+for t in threads: 
+    t.join() 
